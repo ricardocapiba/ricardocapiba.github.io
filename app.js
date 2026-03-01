@@ -1,211 +1,526 @@
-const STORAGE_KEY = "performa-metrics-v1";
+const STORAGE_KEY = "performa-commercial-v2";
+const DEFAULT_PHOTO =
+  "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80";
 
-const form = document.getElementById("metric-form");
-const recordsBody = document.getElementById("records-body");
-const kpiGrid = document.getElementById("kpi-grid");
-const agentFilter = document.getElementById("agent-filter");
-const monthFilter = document.getElementById("month-filter");
-const clearFiltersBtn = document.getElementById("clear-filters");
-
-const fields = {
-  agent: document.getElementById("agent"),
-  date: document.getElementById("date"),
-  leads: document.getElementById("leads"),
-  contacts: document.getElementById("contacts"),
-  visits: document.getElementById("visits"),
-  proposals: document.getElementById("proposals"),
-  sales: document.getElementById("sales"),
-  vgv: document.getElementById("vgv"),
+const el = {
+  loginForm: document.getElementById("login-form"),
+  userSelect: document.getElementById("user-select"),
+  sessionInfo: document.getElementById("session-info"),
+  periodFilter: document.getElementById("period-filter"),
+  dateFilter: document.getElementById("date-filter"),
+  teamFilter: document.getElementById("team-filter"),
+  statusFilter: document.getElementById("status-filter"),
+  summaryKpis: document.getElementById("summary-kpis"),
+  projectionForm: document.getElementById("projection-form"),
+  projectionSales: document.getElementById("projection-sales"),
+  projectionResult: document.getElementById("projection-result"),
+  managerEntrySection: document.getElementById("manager-entry-section"),
+  metricForm: document.getElementById("metric-form"),
+  metricAgent: document.getElementById("metric-agent"),
+  metricDate: document.getElementById("metric-date"),
+  metricLeadsReceived: document.getElementById("metric-leads-received"),
+  metricLeadsBase: document.getElementById("metric-leads-base"),
+  metricDocs: document.getElementById("metric-docs"),
+  metricSales: document.getElementById("metric-sales"),
+  agentsGrid: document.getElementById("agents-grid"),
+  teamForm: document.getElementById("team-form"),
+  teamName: document.getElementById("team-name"),
+  teamManager: document.getElementById("team-manager"),
+  teamsList: document.getElementById("teams-list"),
+  agentForm: document.getElementById("agent-form"),
+  agentName: document.getElementById("agent-name"),
+  agentPhoto: document.getElementById("agent-photo"),
+  agentTeam: document.getElementById("agent-team"),
+  agentsAdminBody: document.getElementById("agents-admin-body"),
 };
 
-const kpis = [
-  { key: "leads", label: "Leads" },
-  { key: "contacts", label: "Contatos" },
-  { key: "visits", label: "Visitas" },
-  { key: "proposals", label: "Propostas" },
-  { key: "sales", label: "Vendas" },
-];
+let state = loadState();
+let currentUserId = state.currentUserId;
 
-const currency = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-let records = loadRecords();
-
-if (!fields.date.value) {
-  fields.date.valueAsDate = new Date();
+if (!el.dateFilter.value) {
+  el.dateFilter.value = dateISO(new Date());
+}
+if (!el.metricDate.value) {
+  el.metricDate.value = dateISO(new Date());
 }
 
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
+bindEvents();
+render();
 
-  const record = {
-    id: crypto.randomUUID(),
-    agent: fields.agent.value.trim(),
-    date: fields.date.value,
-    leads: numberValue(fields.leads.value),
-    contacts: numberValue(fields.contacts.value),
-    visits: numberValue(fields.visits.value),
-    proposals: numberValue(fields.proposals.value),
-    sales: numberValue(fields.sales.value),
-    vgv: numberValue(fields.vgv.value),
-  };
+function bindEvents() {
+  el.loginForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    currentUserId = el.userSelect.value;
+    state.currentUserId = currentUserId;
+    persist();
+    render();
+  });
 
-  if (!record.agent || !record.date) return;
+  el.periodFilter.addEventListener("change", render);
+  el.dateFilter.addEventListener("change", render);
+  el.teamFilter.addEventListener("change", render);
+  el.statusFilter.addEventListener("change", render);
 
-  records.push(record);
-  persist();
-  refresh();
-  form.reset();
-  fields.date.valueAsDate = new Date();
-  fields.agent.focus();
-});
+  el.metricForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const user = currentUser();
+    if (!user || user.role !== "manager") return;
 
-agentFilter.addEventListener("change", refresh);
-monthFilter.addEventListener("change", refresh);
-clearFiltersBtn.addEventListener("click", () => {
-  agentFilter.value = "todos";
-  monthFilter.value = "";
-  refresh();
-});
+    const payload = {
+      id: id(),
+      agentId: el.metricAgent.value,
+      date: el.metricDate.value,
+      leadsReceived: num(el.metricLeadsReceived.value),
+      leadsBaseTotal: num(el.metricLeadsBase.value),
+      docsReceived: num(el.metricDocs.value),
+      sales: num(el.metricSales.value),
+      createdBy: user.id,
+    };
 
-recordsBody.addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-id]");
-  if (!button) return;
+    if (!payload.agentId || !payload.date) return;
 
-  records = records.filter((record) => record.id !== button.dataset.id);
-  persist();
-  refresh();
-});
+    state.metrics.push(payload);
+    persist();
+    el.metricForm.reset();
+    el.metricDate.value = dateISO(new Date());
+    render();
+  });
 
-function loadRecords() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
+  el.projectionForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const scope = collectScope();
+    const totals = aggregateTotals(scope.metrics);
+    const targetSales = Math.max(1, num(el.projectionSales.value));
+    const docsPerSale = totals.sales ? totals.docsReceived / totals.sales : 0;
+    const leadsPerDoc = totals.docsReceived ? totals.leadsBaseTotal / totals.docsReceived : 0;
 
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-}
+    if (!docsPerSale || !leadsPerDoc) {
+      el.projectionResult.textContent =
+        "Ainda não há dados suficientes para projeção. Cadastre documentações e vendas.";
+      return;
+    }
 
-function numberValue(value) {
-  return Number.parseFloat(value || 0) || 0;
-}
+    const docsNeeded = Math.ceil(targetSales * docsPerSale);
+    const leadsNeeded = Math.ceil(docsNeeded * leadsPerDoc);
 
-function filteredRecords() {
-  return records.filter((record) => {
-    const byAgent =
-      agentFilter.value === "todos" || record.agent === agentFilter.value;
-    const byMonth =
-      !monthFilter.value || record.date.startsWith(monthFilter.value);
+    el.projectionResult.textContent = `Para ${targetSales} vendas, a projeção indica aproximadamente ${docsNeeded} documentações e ${leadsNeeded} leads da base.`;
+  });
 
-    return byAgent && byMonth;
+  el.teamForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!isAdmin()) return;
+
+    const team = {
+      id: id(),
+      name: el.teamName.value.trim(),
+      managerId: el.teamManager.value,
+    };
+    if (!team.name || !team.managerId) return;
+
+    state.teams.push(team);
+    persist();
+    el.teamForm.reset();
+    render();
+  });
+
+  el.agentForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!isAdmin()) return;
+
+    const teamId = el.agentTeam.value;
+    const newAgent = {
+      id: id(),
+      name: el.agentName.value.trim(),
+      photo: el.agentPhoto.value.trim() || DEFAULT_PHOTO,
+      active: true,
+      currentTeamId: teamId,
+      teamHistory: [{ teamId, startDate: dateISO(new Date()), endDate: null }],
+    };
+    if (!newAgent.name || !teamId) return;
+
+    state.agents.push(newAgent);
+    persist();
+    el.agentForm.reset();
+    render();
+  });
+
+  el.agentsAdminBody.addEventListener("click", (event) => {
+    if (!isAdmin()) return;
+    const actionButton = event.target.closest("button[data-action]");
+    if (!actionButton) return;
+
+    const agent = state.agents.find((item) => item.id === actionButton.dataset.id);
+    if (!agent) return;
+
+    const action = actionButton.dataset.action;
+
+    if (action === "toggle-status") {
+      agent.active = !agent.active;
+    }
+
+    if (action === "move-team") {
+      const nextTeam = prompt("Informe o ID da equipe destino:");
+      if (!nextTeam || !state.teams.some((team) => team.id === nextTeam) || nextTeam === agent.currentTeamId) {
+        return;
+      }
+      const activeHistory = agent.teamHistory.find((history) => history.endDate === null);
+      if (activeHistory) activeHistory.endDate = dateISO(new Date());
+      agent.currentTeamId = nextTeam;
+      agent.teamHistory.push({ teamId: nextTeam, startDate: dateISO(new Date()), endDate: null });
+    }
+
+    persist();
+    render();
   });
 }
 
-function computeTotals(data) {
-  const total = data.reduce(
-    (acc, item) => {
-      acc.leads += item.leads;
-      acc.contacts += item.contacts;
-      acc.visits += item.visits;
-      acc.proposals += item.proposals;
-      acc.sales += item.sales;
-      acc.vgv += item.vgv;
-      return acc;
-    },
-    { leads: 0, contacts: 0, visits: 0, proposals: 0, sales: 0, vgv: 0 },
-  );
-
-  const contactRate = percentage(total.contacts, total.leads);
-  const visitRate = percentage(total.visits, total.contacts);
-  const proposalRate = percentage(total.proposals, total.visits);
-  const closeRate = percentage(total.sales, total.proposals);
-
-  return { ...total, contactRate, visitRate, proposalRate, closeRate };
+function render() {
+  renderUserSelect();
+  renderSession();
+  renderFilters();
+  renderManagerForm();
+  renderSummary();
+  renderAgents();
+  renderAdminSections();
 }
 
-function percentage(part, whole) {
-  if (!whole) return "0,0%";
-  return `${((part / whole) * 100).toFixed(1).replace(".", ",")}%`;
-}
-
-function refreshAgentFilter() {
-  const selected = agentFilter.value;
-  const agents = [...new Set(records.map((item) => item.agent))].sort();
-  agentFilter.innerHTML = `<option value="todos">Todos</option>`;
-
-  for (const agent of agents) {
-    const option = document.createElement("option");
-    option.value = agent;
-    option.textContent = agent;
-    agentFilter.append(option);
+function renderUserSelect() {
+  const selected = currentUserId;
+  el.userSelect.innerHTML = "";
+  for (const user of state.users) {
+    const opt = document.createElement("option");
+    opt.value = user.id;
+    opt.textContent = `${user.name} (${user.role === "admin" ? "Gestor admin" : "Gerente"})`;
+    el.userSelect.append(opt);
   }
-
-  if (["todos", ...agents].includes(selected)) {
-    agentFilter.value = selected;
+  if (state.users.some((user) => user.id === selected)) {
+    el.userSelect.value = selected;
+  } else {
+    currentUserId = state.users[0]?.id;
+    state.currentUserId = currentUserId;
+    persist();
   }
 }
 
-function renderKPIs(totals) {
-  const items = [
-    ...kpis.map((kpi) => ({ label: kpi.label, value: totals[kpi.key] })),
-    { label: "VGV", value: currency.format(totals.vgv) },
-    { label: "Tx. contato/leads", value: totals.contactRate },
-    { label: "Tx. visita/contatos", value: totals.visitRate },
-    { label: "Tx. proposta/visitas", value: totals.proposalRate },
-    { label: "Tx. fechamento", value: totals.closeRate },
-  ];
-
-  const template = document.getElementById("kpi-card-template");
-  kpiGrid.innerHTML = "";
-
-  for (const item of items) {
-    const node = template.content.cloneNode(true);
-    node.querySelector("h3").textContent = item.label;
-    node.querySelector("strong").textContent =
-      typeof item.value === "number" ? item.value.toLocaleString("pt-BR") : item.value;
-    kpiGrid.append(node);
-  }
-}
-
-function renderTable(data) {
-  recordsBody.innerHTML = "";
-
-  if (!data.length) {
-    recordsBody.innerHTML = `<tr><td class="empty" colspan="9">Nenhum registro encontrado.</td></tr>`;
+function renderSession() {
+  const user = currentUser();
+  if (!user) {
+    el.sessionInfo.textContent = "Sem usuário ativo.";
     return;
   }
 
-  const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
-  for (const record of sorted) {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${new Date(`${record.date}T12:00:00`).toLocaleDateString("pt-BR")}</td>
-      <td>${record.agent}</td>
-      <td>${record.leads}</td>
-      <td>${record.contacts}</td>
-      <td>${record.visits}</td>
-      <td>${record.proposals}</td>
-      <td>${record.sales}</td>
-      <td>${currency.format(record.vgv)}</td>
-      <td><button type="button" class="remove-btn" data-id="${record.id}">Excluir</button></td>
-    `;
+  const teamNames = user.role === "admin"
+    ? "todas as equipes"
+    : state.teams
+        .filter((team) => team.managerId === user.id)
+        .map((team) => team.name)
+        .join(", ") || "sem equipe vinculada";
 
-    recordsBody.append(row);
+  el.sessionInfo.textContent = `${user.name} | ${user.role === "admin" ? "Gestor Admin" : "Gerente"} | Escopo: ${teamNames}.`;
+}
+
+function renderFilters() {
+  const user = currentUser();
+  const teamsInScope = getTeamsByUser(user);
+  const selectedTeam = el.teamFilter.value;
+
+  el.teamFilter.innerHTML = `<option value="all">Todas</option>`;
+  for (const team of teamsInScope) {
+    const opt = document.createElement("option");
+    opt.value = team.id;
+    opt.textContent = `${team.name} (${team.id})`;
+    el.teamFilter.append(opt);
+  }
+
+  if (["all", ...teamsInScope.map((team) => team.id)].includes(selectedTeam)) {
+    el.teamFilter.value = selectedTeam;
   }
 }
 
-function refresh() {
-  refreshAgentFilter();
-  const data = filteredRecords();
-  const totals = computeTotals(data);
-  renderKPIs(totals);
-  renderTable(data);
+function renderManagerForm() {
+  const user = currentUser();
+  const allowed = user && user.role === "manager";
+  el.managerEntrySection.classList.toggle("hidden", !allowed);
+
+  if (!allowed) return;
+
+  const agents = collectScope().agents;
+  const previous = el.metricAgent.value;
+
+  el.metricAgent.innerHTML = "";
+  for (const agent of agents) {
+    const option = document.createElement("option");
+    option.value = agent.id;
+    option.textContent = `${agent.name} (${teamName(agent.currentTeamId)})`;
+    el.metricAgent.append(option);
+  }
+
+  if (agents.some((item) => item.id === previous)) {
+    el.metricAgent.value = previous;
+  }
 }
 
-refresh();
+function renderSummary() {
+  const scope = collectScope();
+  const totals = aggregateTotals(scope.metrics);
+  const teamAverage = scope.teams.length ? totals.sales / scope.teams.length : 0;
+
+  const cards = [
+    ["Leads recebidos", totals.leadsReceived],
+    ["Leads totais da base", totals.leadsBaseTotal],
+    ["Documentações", totals.docsReceived],
+    ["Leads necessários por doc (base)", ratio(totals.leadsBaseTotal, totals.docsReceived)],
+    ["Vendas", totals.sales],
+    ["Docs necessários por venda", ratio(totals.docsReceived, totals.sales)],
+    ["Média de vendas por equipe", teamAverage.toFixed(2)],
+    ["Corretores no filtro", scope.agents.length],
+  ];
+
+  const template = document.getElementById("kpi-template");
+  el.summaryKpis.innerHTML = "";
+
+  for (const [title, value] of cards) {
+    const node = template.content.cloneNode(true);
+    node.querySelector("h3").textContent = title;
+    node.querySelector("strong").textContent = String(value);
+    el.summaryKpis.append(node);
+  }
+}
+
+function renderAgents() {
+  const scope = collectScope();
+  if (!scope.agents.length) {
+    el.agentsGrid.innerHTML = `<p class="empty">Nenhum corretor encontrado para os filtros selecionados.</p>`;
+    return;
+  }
+
+  const byAgentId = groupMetricsByAgent(scope.metrics);
+
+  el.agentsGrid.innerHTML = scope.agents
+    .map((agent) => {
+      const totals = aggregateTotals(byAgentId.get(agent.id) || []);
+      return `
+      <article class="agent-card ${agent.active ? "" : "inactive"}">
+        <img src="${agent.photo}" alt="Foto de ${agent.name}" />
+        <div>
+          <h3>${agent.name}</h3>
+          <p>${teamName(agent.currentTeamId)} | ${agent.active ? "Ativo" : "Desativado"}</p>
+          <ul>
+            <li>Leads recebidos: <strong>${totals.leadsReceived}</strong></li>
+            <li>Leads totais base: <strong>${totals.leadsBaseTotal}</strong></li>
+            <li>Documentações: <strong>${totals.docsReceived}</strong></li>
+            <li>Leads por doc (base): <strong>${ratio(totals.leadsBaseTotal, totals.docsReceived)}</strong></li>
+            <li>Vendas: <strong>${totals.sales}</strong></li>
+            <li>Docs por venda: <strong>${ratio(totals.docsReceived, totals.sales)}</strong></li>
+          </ul>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+function renderAdminSections() {
+  const admin = isAdmin();
+  document.querySelectorAll(".admin-only").forEach((node) => node.classList.toggle("hidden", !admin));
+  if (!admin) return;
+
+  const managers = state.users.filter((user) => user.role === "manager");
+  const teamManagerPrev = el.teamManager.value;
+  el.teamManager.innerHTML = "";
+  for (const manager of managers) {
+    const opt = document.createElement("option");
+    opt.value = manager.id;
+    opt.textContent = manager.name;
+    el.teamManager.append(opt);
+  }
+  if (managers.some((manager) => manager.id === teamManagerPrev)) {
+    el.teamManager.value = teamManagerPrev;
+  }
+
+  const teamPrev = el.agentTeam.value;
+  el.agentTeam.innerHTML = "";
+  for (const team of state.teams) {
+    const opt = document.createElement("option");
+    opt.value = team.id;
+    opt.textContent = `${team.name} (${team.id})`;
+    el.agentTeam.append(opt);
+  }
+  if (state.teams.some((team) => team.id === teamPrev)) {
+    el.agentTeam.value = teamPrev;
+  }
+
+  el.teamsList.innerHTML = state.teams
+    .map((team) => `<p><strong>${team.name}</strong> (${team.id}) — Gerente: ${userName(team.managerId)}</p>`)
+    .join("");
+
+  el.agentsAdminBody.innerHTML = state.agents
+    .map(
+      (agent) => `
+      <tr>
+        <td>${agent.name}</td>
+        <td>${agent.active ? "Ativo" : "Desativado"}</td>
+        <td>${teamName(agent.currentTeamId)} (${agent.currentTeamId})</td>
+        <td class="actions">
+          <button data-action="toggle-status" data-id="${agent.id}" type="button">${agent.active ? "Desativar" : "Ativar"}</button>
+          <button data-action="move-team" data-id="${agent.id}" type="button">Mover equipe</button>
+        </td>
+      </tr>`,
+    )
+    .join("");
+}
+
+function collectScope() {
+  const user = currentUser();
+  if (!user) {
+    return { teams: [], agents: [], metrics: [] };
+  }
+
+  const teams = getTeamsByUser(user);
+  const selectedTeam = el.teamFilter.value;
+  const teamIds = (selectedTeam && selectedTeam !== "all" ? [selectedTeam] : teams.map((team) => team.id));
+
+  let agents = state.agents.filter((agent) => teamIds.includes(agent.currentTeamId));
+
+  if (el.statusFilter.value === "active") {
+    agents = agents.filter((agent) => agent.active);
+  }
+  if (el.statusFilter.value === "inactive") {
+    agents = agents.filter((agent) => !agent.active);
+  }
+
+  const agentIds = new Set(agents.map((agent) => agent.id));
+  const metrics = state.metrics.filter(
+    (metric) => agentIds.has(metric.agentId) && isInPeriod(metric.date, el.periodFilter.value, el.dateFilter.value),
+  );
+
+  return { teams: teams.filter((team) => teamIds.includes(team.id)), agents, metrics };
+}
+
+function getTeamsByUser(user) {
+  if (!user) return [];
+  if (user.role === "admin") return [...state.teams];
+  return state.teams.filter((team) => team.managerId === user.id);
+}
+
+function aggregateTotals(metrics) {
+  return metrics.reduce(
+    (acc, item) => {
+      acc.leadsReceived += item.leadsReceived;
+      acc.leadsBaseTotal += item.leadsBaseTotal;
+      acc.docsReceived += item.docsReceived;
+      acc.sales += item.sales;
+      return acc;
+    },
+    { leadsReceived: 0, leadsBaseTotal: 0, docsReceived: 0, sales: 0 },
+  );
+}
+
+function groupMetricsByAgent(metrics) {
+  const map = new Map();
+  for (const metric of metrics) {
+    if (!map.has(metric.agentId)) map.set(metric.agentId, []);
+    map.get(metric.agentId).push(metric);
+  }
+  return map;
+}
+
+function isInPeriod(dateString, period, refDateString) {
+  if (period === "all") return true;
+  const date = new Date(`${dateString}T12:00:00`);
+  const ref = new Date(`${refDateString}T12:00:00`);
+
+  if (period === "day") {
+    return dateString === refDateString;
+  }
+
+  if (period === "month") {
+    return date.getFullYear() === ref.getFullYear() && date.getMonth() === ref.getMonth();
+  }
+
+  if (period === "year") {
+    return date.getFullYear() === ref.getFullYear();
+  }
+
+  if (period === "week") {
+    const start = startOfWeek(ref);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return date >= start && date <= end;
+  }
+
+  return true;
+}
+
+function startOfWeek(date) {
+  const copy = new Date(date);
+  const day = copy.getDay();
+  const diff = copy.getDate() - day + (day === 0 ? -6 : 1);
+  copy.setDate(diff);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+
+  const admin = { id: id(), name: "Patrícia Admin", role: "admin" };
+  const managerA = { id: id(), name: "Carlos Gerente", role: "manager" };
+  const managerB = { id: id(), name: "Marina Gerente", role: "manager" };
+  const teamA = { id: id(), name: "Equipe Norte", managerId: managerA.id };
+  const teamB = { id: id(), name: "Equipe Sul", managerId: managerB.id };
+  const agents = [
+    { id: id(), name: "Ana Souza", photo: DEFAULT_PHOTO, active: true, currentTeamId: teamA.id, teamHistory: [{ teamId: teamA.id, startDate: dateISO(new Date()), endDate: null }] },
+    { id: id(), name: "Bruno Lima", photo: DEFAULT_PHOTO, active: true, currentTeamId: teamA.id, teamHistory: [{ teamId: teamA.id, startDate: dateISO(new Date()), endDate: null }] },
+    { id: id(), name: "Carla Nunes", photo: DEFAULT_PHOTO, active: false, currentTeamId: teamB.id, teamHistory: [{ teamId: teamB.id, startDate: dateISO(new Date()), endDate: null }] },
+  ];
+
+  return {
+    users: [admin, managerA, managerB],
+    teams: [teamA, teamB],
+    agents,
+    metrics: [],
+    currentUserId: admin.id,
+  };
+}
+
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function ratio(numerator, denominator) {
+  if (!denominator) return "0,00";
+  return (numerator / denominator).toFixed(2).replace(".", ",");
+}
+
+function currentUser() {
+  return state.users.find((user) => user.id === currentUserId);
+}
+
+function teamName(teamId) {
+  return state.teams.find((team) => team.id === teamId)?.name || "Sem equipe";
+}
+
+function userName(userId) {
+  return state.users.find((user) => user.id === userId)?.name || "N/A";
+}
+
+function isAdmin() {
+  return currentUser()?.role === "admin";
+}
+
+function id() {
+  return crypto.randomUUID();
+}
+
+function dateISO(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function num(value) {
+  return Number.parseFloat(value || 0) || 0;
+}
