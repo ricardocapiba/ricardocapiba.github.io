@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel Comercial Imobiliário</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Painel Comercial - Imobiliário</h1>
+      <p>Controle diário dos principais números da equipe de vendas.</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Novo registro</h2>
+        <form id="metric-form">
+          <div class="grid">
+            <label>
+              Corretor(a)
+              <input type="text" id="agent" placeholder="Ex: Ana Souza" required />
+            </label>
+
+            <label>
+              Data
+              <input type="date" id="date" required />
+            </label>
+
+            <label>
+              Leads recebidos
+              <input type="number" id="leads" min="0" required />
+            </label>
+
+            <label>
+              Contatos realizados
+              <input type="number" id="contacts" min="0" required />
+            </label>
+
+            <label>
+              Visitas agendadas
+              <input type="number" id="visits" min="0" required />
+            </label>
+
+            <label>
+              Propostas enviadas
+              <input type="number" id="proposals" min="0" required />
+            </label>
+
+            <label>
+              Vendas fechadas
+              <input type="number" id="sales" min="0" required />
+            </label>
+
+            <label>
+              VGV vendido (R$)
+              <input type="number" id="vgv" min="0" step="0.01" required />
+            </label>
+          </div>
+
+          <button type="submit">Salvar registro</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Filtros</h2>
+        <div class="filters">
+          <label>
+            Corretor(a)
+            <select id="agent-filter">
+              <option value="todos">Todos</option>
+            </select>
+          </label>
+
+          <label>
+            Mês
+            <input type="month" id="month-filter" />
+          </label>
+
+          <button id="clear-filters" type="button">Limpar filtros</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Resumo consolidado</h2>
+        <div class="kpi-grid" id="kpi-grid"></div>
+      </section>
+
+      <section class="card">
+        <h2>Registros</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Corretor(a)</th>
+                <th>Leads</th>
+                <th>Contatos</th>
+                <th>Visitas</th>
+                <th>Propostas</th>
+                <th>Vendas</th>
+                <th>VGV (R$)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="records-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <template id="kpi-card-template">
+      <article class="kpi-card">
+        <h3></h3>
+        <strong></strong>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
