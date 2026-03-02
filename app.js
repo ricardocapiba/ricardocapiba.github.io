@@ -3,6 +3,10 @@ const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1472099645785-5658abf4f
 
 const $ = (id) => document.getElementById(id);
 const el = {
+  menuToggle: $("menu-toggle"),
+  sidebar: $("sidebar"),
+  navLinks: [...document.querySelectorAll(".nav-link")],
+  pages: [...document.querySelectorAll(".page")],
   loginForm: $("login-form"),
   userSelect: $("user-select"),
   periodFilter: $("period-filter"),
@@ -10,7 +14,6 @@ const el = {
   teamFilter: $("team-filter"),
   statusFilter: $("status-filter"),
   kpiGrid: $("kpi-grid"),
-  managerSection: $("manager-section"),
   metricForm: $("metric-form"),
   metricAgent: $("metric-agent"),
   metricDate: $("metric-date"),
@@ -19,7 +22,6 @@ const el = {
   metricDocs: $("metric-docs"),
   metricSales: $("metric-sales"),
   agentsTableBody: $("agents-table-body"),
-  adminSection: $("admin-section"),
   teamForm: $("team-form"),
   teamName: $("team-name"),
   teamManager: $("team-manager"),
@@ -32,6 +34,7 @@ const el = {
 
 let state = loadState();
 let currentUserId = state.currentUserId;
+let activePage = "page-results";
 el.dateFilter.value = dateISO(new Date());
 el.metricDate.value = dateISO(new Date());
 
@@ -39,11 +42,27 @@ bindEvents();
 render();
 
 function bindEvents() {
+  el.menuToggle.addEventListener("click", () => el.sidebar.classList.toggle("open"));
+
+  el.navLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      const target = link.dataset.page;
+      if (!canAccessPage(target)) return;
+      setActivePage(target);
+      el.sidebar.classList.remove("open");
+    });
+  });
+
   el.loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
     currentUserId = el.userSelect.value;
     state.currentUserId = currentUserId;
     persist();
+
+    if (!canAccessPage(activePage)) {
+      activePage = "page-results";
+    }
+
     render();
   });
 
@@ -105,6 +124,7 @@ function bindEvents() {
     if (btn.dataset.action === "toggle") {
       agent.active = !agent.active;
     }
+
     if (btn.dataset.action === "move") {
       const nextTeamId = prompt("ID da equipe destino:");
       if (!nextTeamId || nextTeamId === agent.currentTeamId || !state.teams.some((t) => t.id === nextTeamId)) return;
@@ -125,9 +145,29 @@ function render() {
   renderKPIs();
   renderAgentsTable();
   renderAdmin();
+  renderAccessByRole();
+  setActivePage(activePage);
+}
 
-  el.managerSection.classList.toggle("hidden", !isManager());
-  el.adminSection.classList.toggle("hidden", !isAdmin());
+function renderAccessByRole() {
+  document.querySelectorAll(".admin-only").forEach((node) => node.classList.toggle("hidden", !isAdmin()));
+  document.querySelectorAll(".manager-only").forEach((node) => node.classList.toggle("hidden", !isManager()));
+
+  el.navLinks.forEach((link) => {
+    link.classList.toggle("hidden", !canAccessPage(link.dataset.page));
+  });
+}
+
+function canAccessPage(pageId) {
+  if (pageId === "page-team" || pageId === "page-agent") return isAdmin();
+  if (pageId === "page-metrics") return isManager();
+  return true;
+}
+
+function setActivePage(pageId) {
+  activePage = pageId;
+  el.pages.forEach((page) => page.classList.toggle("active", page.id === pageId));
+  el.navLinks.forEach((link) => link.classList.toggle("active", link.dataset.page === pageId));
 }
 
 function renderUserSelect() {
@@ -191,9 +231,7 @@ function renderAgentsTable() {
     .map((a) => {
       const t = aggregate(grouped.get(a.id) || []);
       return `<tr>
-        <td>
-          <div class="avatar-cell"><img src="${a.photo}" alt="${a.name}" /><span>${a.name}</span></div>
-        </td>
+        <td><div class="avatar-cell"><img src="${a.photo}" alt="${a.name}" /><span>${a.name}</span></div></td>
         <td>${teamName(a.currentTeamId)}</td>
         <td>${a.active ? "Ativo" : "Desativado"}</td>
         <td>${t.leadsReceived}</td>
