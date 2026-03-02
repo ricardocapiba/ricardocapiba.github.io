@@ -3,161 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema Comercial Imobiliário</title>
+    <title>Layout Comercial</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div>
-        <h1>Sistema Comercial Imobiliário</h1>
-        <p>Monitoramento por corretor, equipe e empresa com controle de acesso.</p>
-      </div>
-      <form id="login-form" class="login-box">
-        <label>
-          Perfil de acesso
-          <select id="user-select"></select>
-        </label>
-        <button type="submit">Entrar</button>
-      </form>
-    </header>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
 
-    <main>
-      <section class="card" id="session-card">
-        <h2>Sessão atual</h2>
-        <p id="session-info"></p>
-      </section>
+    <main class="container">
+      <header class="hero glass">
+        <span class="chip"></span>
+        <h1></h1>
+        <p></p>
+      </header>
 
-      <section class="card filters">
-        <h2>Filtros</h2>
-        <div class="filters-grid">
-          <label>
-            Período
-            <select id="period-filter">
-              <option value="week">Semana</option>
-              <option value="month" selected>Mês (padrão)</option>
-              <option value="year">Ano</option>
-              <option value="all">Histórico geral</option>
-              <option value="day">Dia</option>
-            </select>
-          </label>
+      <section class="grid">
+        <article class="card glass">
+          <div class="line"></div>
+          <div class="line short"></div>
+          <div class="block"></div>
+        </article>
 
-          <label id="date-filter-wrap">
-            Data de referência
-            <input type="date" id="date-filter" />
-          </label>
+        <article class="card glass">
+          <div class="line"></div>
+          <div class="line short"></div>
+          <div class="block"></div>
+        </article>
 
-          <label id="team-filter-wrap">
-            Equipe
-            <select id="team-filter"></select>
-          </label>
+        <article class="card glass">
+          <div class="line"></div>
+          <div class="line short"></div>
+          <div class="block"></div>
+        </article>
 
-          <label>
-            Corretores
-            <select id="status-filter">
-              <option value="all">Todos</option>
-              <option value="active">Apenas ativados</option>
-              <option value="inactive">Apenas desativados</option>
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section class="card" id="summary-card">
-        <h2>Resumo</h2>
-        <div class="kpi-grid" id="summary-kpis"></div>
-      </section>
-
-      <section class="card" id="projection-card">
-        <h2>Previsão de necessidade futura</h2>
-        <form id="projection-form" class="projection-form">
-          <label>
-            Meta de vendas
-            <input id="projection-sales" type="number" min="1" value="10" required />
-          </label>
-          <button type="submit">Calcular necessidade</button>
-        </form>
-        <p id="projection-result" class="projection-result"></p>
-      </section>
-
-      <section class="card" id="manager-entry-section">
-        <h2>Lançamento de números (Gerente)</h2>
-        <form id="metric-form" class="manager-form">
-          <div class="form-grid">
-            <label>
-              Corretor(a)
-              <select id="metric-agent" required></select>
-            </label>
-            <label>
-              Data
-              <input id="metric-date" type="date" required />
-            </label>
-            <label>
-              Leads recebidos
-              <input id="metric-leads-received" type="number" min="0" required />
-            </label>
-            <label>
-              Leads totais da base
-              <input id="metric-leads-base" type="number" min="0" required />
-            </label>
-            <label>
-              Documentações recebidas
-              <input id="metric-docs" type="number" min="0" required />
-            </label>
-            <label>
-              Vendas realizadas
-              <input id="metric-sales" type="number" min="0" required />
-            </label>
+        <article class="card glass wide">
+          <div class="line"></div>
+          <div class="table-skeleton">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
           </div>
-          <button type="submit">Salvar lançamento</button>
-        </form>
-      </section>
-
-      <section class="card" id="agents-card">
-        <h2>Corretores</h2>
-        <div id="agents-grid" class="agents-grid"></div>
-      </section>
-
-      <section class="card admin-only" id="admin-teams-section">
-        <h2>Gestão de equipes (Admin)</h2>
-        <form id="team-form" class="inline-form">
-          <input id="team-name" type="text" placeholder="Nova equipe" required />
-          <select id="team-manager" required></select>
-          <button type="submit">Criar equipe</button>
-        </form>
-        <div id="teams-list" class="mini-list"></div>
-      </section>
-
-      <section class="card admin-only" id="admin-agents-section">
-        <h2>Gestão de corretores (Admin)</h2>
-        <form id="agent-form" class="inline-form stack-mobile">
-          <input id="agent-name" type="text" placeholder="Nome do corretor" required />
-          <input id="agent-photo" type="url" placeholder="URL da foto (opcional)" />
-          <select id="agent-team" required></select>
-          <button type="submit">Criar corretor</button>
-        </form>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Corretor</th>
-                <th>Status</th>
-                <th>Equipe atual</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="agents-admin-body"></tbody>
-          </table>
-        </div>
+        </article>
       </section>
     </main>
-
-    <template id="kpi-template">
-      <article class="kpi-card">
-        <h3></h3>
-        <strong></strong>
-      </article>
-    </template>
 
     <script src="app.js"></script>
   </body>
