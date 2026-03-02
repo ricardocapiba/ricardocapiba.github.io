@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Performa Beta | Comercial Imobiliário</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menu">☰</button>
+      <div>
+        <h1>Performa Comercial Imobiliário</h1>
+        <p class="subtitle">Versão beta com foco em resultados</p>
+      </div>
+      <form id="login-form" class="session-form">
+        <label>
+          Perfil
+          <select id="user-select"></select>
+        </label>
+        <button type="submit">Entrar</button>
+      </form>
+    </header>
+
+    <div class="layout">
+      <aside id="sidebar" class="sidebar">
+        <nav>
+          <button class="nav-link active" data-page="page-results">📊 Resultados</button>
+          <button class="nav-link admin-only" data-page="page-team">👥 Incluir equipe</button>
+          <button class="nav-link admin-only" data-page="page-agent">🧑‍💼 Incluir corretor</button>
+          <button class="nav-link manager-only" data-page="page-metrics">📝 Lançamentos</button>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <section id="page-results" class="page active">
+          <section class="card filters">
+            <h2>Filtros</h2>
+            <div class="filters-grid">
+              <label>
+                Período
+                <select id="period-filter">
+                  <option value="month" selected>Mês</option>
+                  <option value="week">Semana</option>
+                  <option value="day">Dia</option>
+                  <option value="year">Ano</option>
+                  <option value="all">Histórico geral</option>
+                </select>
+              </label>
+              <label>
+                Data de referência
+                <input id="date-filter" type="date" />
+              </label>
+              <label>
+                Equipe
+                <select id="team-filter"></select>
+              </label>
+              <label>
+                Status dos corretores
+                <select id="status-filter">
+                  <option value="all">Todos</option>
+                  <option value="active">Ativos</option>
+                  <option value="inactive">Desativados</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Resumo geral</h2>
+            <div id="kpi-grid" class="kpi-grid"></div>
+          </section>
+
+          <section class="card">
+            <h2>Lista de corretores (estilo planilha)</h2>
+            <div class="table-wrap excel-view">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Corretor</th>
+                    <th>Equipe</th>
+                    <th>Status</th>
+                    <th>Leads recebidos</th>
+                    <th>Leads base</th>
+                    <th>Documentações</th>
+                    <th>Leads por doc</th>
+                    <th>Vendas</th>
+                    <th>Docs por venda</th>
+                  </tr>
+                </thead>
+                <tbody id="agents-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="page-team" class="page admin-only">
+          <section class="card">
+            <h2>Incluir equipe</h2>
+            <form id="team-form" class="simple-form">
+              <label>Nome da equipe<input id="team-name" type="text" required /></label>
+              <label>Gerente responsável<select id="team-manager" required></select></label>
+              <button type="submit">Criar equipe</button>
+            </form>
+          </section>
+        </section>
+
+        <section id="page-agent" class="page admin-only">
+          <section class="card">
+            <h2>Incluir corretor</h2>
+            <form id="agent-form" class="simple-form">
+              <label>Nome do corretor<input id="agent-name" type="text" required /></label>
+              <label>Foto (URL)<input id="agent-photo" type="url" placeholder="https://..." /></label>
+              <label>Equipe<select id="agent-team" required></select></label>
+              <button type="submit">Criar corretor</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2>Gestão de corretores</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Corretor</th>
+                    <th>Status</th>
+                    <th>Equipe</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-agents-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="page-metrics" class="page manager-only">
+          <section class="card">
+            <h2>Lançamentos do gerente</h2>
+            <form id="metric-form" class="simple-form">
+              <label>Corretor<select id="metric-agent" required></select></label>
+              <label>Data<input id="metric-date" type="date" required /></label>
+              <label>Leads recebidos<input id="metric-leads" type="number" min="0" required /></label>
+              <label>Leads totais da base<input id="metric-base" type="number" min="0" required /></label>
+              <label>Documentações<input id="metric-docs" type="number" min="0" required /></label>
+              <label>Vendas<input id="metric-sales" type="number" min="0" required /></label>
+              <button type="submit">Salvar</button>
+            </form>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="kpi-template">
+      <article class="kpi-card"><h3></h3><strong></strong></article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
