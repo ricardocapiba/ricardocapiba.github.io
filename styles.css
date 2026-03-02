@@ -70,3 +70,38 @@ th, td { text-align: left; padding: .55rem; border-bottom: 1px solid rgba(148,19
 @media (max-width: 760px) {
   .session-form { grid-template-columns: 1fr; }
 }
+
+
+.excel-view table {
+  background: rgba(5, 20, 44, 0.75);
+  border: 1px solid rgba(148, 197, 255, 0.18);
+}
+
+.excel-view thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(7, 28, 61, 0.95);
+}
+
+.excel-view th,
+.excel-view td {
+  font-size: 0.86rem;
+}
+
+.excel-view tbody tr:hover {
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.avatar-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avatar-cell img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}

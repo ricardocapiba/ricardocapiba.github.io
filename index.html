@@ -63,6 +63,28 @@
         <div id="kpi-grid" class="kpi-grid"></div>
       </section>
 
+      <section class="glass card">
+        <h2>Corretores (visão principal em lista)</h2>
+        <div class="table-wrap excel-view">
+          <table>
+            <thead>
+              <tr>
+                <th>Corretor</th>
+                <th>Equipe</th>
+                <th>Status</th>
+                <th>Leads recebidos</th>
+                <th>Leads base</th>
+                <th>Documentações</th>
+                <th>Leads por doc</th>
+                <th>Vendas</th>
+                <th>Docs por venda</th>
+              </tr>
+            </thead>
+            <tbody id="agents-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="manager-section" class="glass card">
         <h2>Lançar números (Gerente)</h2>
         <form id="metric-form" class="form-grid">
@@ -74,11 +96,6 @@
           <label>Vendas<input id="metric-sales" type="number" min="0" required /></label>
           <button type="submit">Salvar</button>
         </form>
-      </section>
-
-      <section class="glass card">
-        <h2>Corretores</h2>
-        <div id="agents-grid" class="agents-grid"></div>
       </section>
 
       <section id="admin-section" class="glass card">

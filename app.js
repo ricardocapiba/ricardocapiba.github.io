@@ -18,7 +18,7 @@ const el = {
   metricBase: $("metric-base"),
   metricDocs: $("metric-docs"),
   metricSales: $("metric-sales"),
-  agentsGrid: $("agents-grid"),
+  agentsTableBody: $("agents-table-body"),
   adminSection: $("admin-section"),
   teamForm: $("team-form"),
   teamName: $("team-name"),
@@ -123,7 +123,7 @@ function render() {
   renderFilters();
   renderMetricAgentSelect();
   renderKPIs();
-  renderAgents();
+  renderAgentsTable();
   renderAdmin();
 
   el.managerSection.classList.toggle("hidden", !isManager());
@@ -175,7 +175,7 @@ function renderKPIs() {
   }
 }
 
-function renderAgents() {
+function renderAgentsTable() {
   const { agents, metrics } = collectScope();
   const grouped = new Map();
   for (const m of metrics) {
@@ -183,27 +183,26 @@ function renderAgents() {
     grouped.get(m.agentId).push(m);
   }
   if (!agents.length) {
-    el.agentsGrid.innerHTML = `<p class="empty">Nenhum corretor no filtro.</p>`;
+    el.agentsTableBody.innerHTML = `<tr><td colspan="9" class="empty">Nenhum corretor no filtro.</td></tr>`;
     return;
   }
-  el.agentsGrid.innerHTML = agents
+
+  el.agentsTableBody.innerHTML = agents
     .map((a) => {
       const t = aggregate(grouped.get(a.id) || []);
-      return `<article class="agent-card ${a.active ? "" : "inactive"}">
-        <img src="${a.photo}" alt="${a.name}" />
-        <div>
-          <h3>${a.name}</h3>
-          <p>${teamName(a.currentTeamId)} • ${a.active ? "Ativo" : "Desativado"}</p>
-          <ul>
-            <li>Leads recebidos: <strong>${t.leadsReceived}</strong></li>
-            <li>Leads base: <strong>${t.leadsBase}</strong></li>
-            <li>Docs: <strong>${t.docs}</strong></li>
-            <li>Leads por doc: <strong>${ratio(t.leadsBase, t.docs)}</strong></li>
-            <li>Vendas: <strong>${t.sales}</strong></li>
-            <li>Docs por venda: <strong>${ratio(t.docs, t.sales)}</strong></li>
-          </ul>
-        </div>
-      </article>`;
+      return `<tr>
+        <td>
+          <div class="avatar-cell"><img src="${a.photo}" alt="${a.name}" /><span>${a.name}</span></div>
+        </td>
+        <td>${teamName(a.currentTeamId)}</td>
+        <td>${a.active ? "Ativo" : "Desativado"}</td>
+        <td>${t.leadsReceived}</td>
+        <td>${t.leadsBase}</td>
+        <td>${t.docs}</td>
+        <td>${ratio(t.leadsBase, t.docs)}</td>
+        <td>${t.sales}</td>
+        <td>${ratio(t.docs, t.sales)}</td>
+      </tr>`;
     })
     .join("");
 }
